@@ -84,7 +84,7 @@ for url in URLS:
     # Save variable data
     space_id = html.find(property='og:url').get('content').replace('https://lightroom.adobe.com/shares/', '')
     album_id = html.find(class_='cover').parent.parent.get('id')
-    album_name = html.find(class_='cover').get('title')
+    album_name = html.find(class_='cover').get('title').replace(' ', '-')
     assets_url = "https://lightroom.adobe.com/v2/spaces/" + space_id + "/albums/" + album_id + "/assets?embed=asset%3Buser&order_after=-&exclude=incomplete&subtype=image%3Bvideo%3Blayout_segment"
 
     # Try additonal data requests
@@ -96,7 +96,7 @@ for url in URLS:
             "url": assets_url,
         })
 
-        # Convert data to json object
+        # Format and convert data to json object
         data = data.find("pre").text.replace("while (1) {}", '')
         data = json.loads(data)
 
@@ -104,19 +104,26 @@ for url in URLS:
         for item in data['resources']:
             # Try to download asset image
             try: 
+                # Href to Large file size
+                href = item['asset']['links']['/rels/rendition_type/2048']['href']
+                # Image hash uuid
+                uuid = item['asset']['id']
+                # Image filename
+                filename = item['asset']['payload']['importSource']['fileName']
+
                 # Print status
                 print("\n" + "Downloading image " + item['asset']['id'])
                 # Download image
-                image = wget.download("https://lightroom.adobe.com/v2c/spaces/" + space_id + "/" + item['asset']['links']['/rels/rendition_type/2048']['href'], out=album_name.replace(' ', '-') + '_' + item['asset']['id'] + '.jpg')
+                image = wget.download("https://lightroom.adobe.com/v2c/spaces/" + space_id + "/" + href, out=album_name + '_' + uuid + '_' + filename + '.jpg')
             except:
                 # Print status
-                print('Error with image' + album_name + item['asset']['id'])
+                print('Error with image' + album_name + ': ' + item['asset']['id'])
                 # Continue 
                 pass
 
     except:
         # Print status
-        print('Error with json.' + space_id)
+        print('Error with json. ' + space_id)
         # Continue
         pass
 
